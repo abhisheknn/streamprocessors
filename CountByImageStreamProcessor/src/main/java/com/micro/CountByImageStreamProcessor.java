@@ -18,7 +18,8 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.state.KeyValueStore;
-
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
@@ -39,7 +40,7 @@ public class CountByImageStreamProcessor {
         SpringApplication.run(CountByImageStreamProcessor.class, args); 
     	Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "count_by_imageid");
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "10.33.116.79:32777");
+        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv("KAFKABROKERS"));
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         Gson gson= new Gson();
