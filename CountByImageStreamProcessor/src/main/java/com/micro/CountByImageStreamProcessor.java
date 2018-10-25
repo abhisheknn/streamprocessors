@@ -48,66 +48,6 @@ public class CountByImageStreamProcessor {
         Type listType= new TypeToken<List<Map<String,Object>>>(){}.getType();
         final StreamsBuilder builder = new StreamsBuilder();
         Map<String, Object> serdeProps = new HashMap<>();
-        
-        
-        
-//        final Serializer<Container> containerSer = new JsonPOJOSerializer<>();
-//        serdeProps.put("JsonPOJOClass", Container.class);
-//        containerSer.configure(serdeProps, false);
-//        
-//        final Deserializer<Container> containerDeser = new JsonPOJODeserializer<>();
-//        serdeProps.put("JsonPOJOClass", Container.class);
-//        containerDeser.configure(serdeProps, false);
-//        
-//        final Serde<Container> containerSerDe = Serdes.serdeFrom(containerSer, containerDeser); 
-//        
-//        final Serializer<List<Container>> containerListSer = new JsonPOJOSerializer<>();
-//        serdeProps.put("JsonPOJOClass", List.class);
-//        containerListSer.configure(serdeProps, false);
-//        
-//        final Deserializer<List<Container>> containerListDeser = new JsonPOJODeserializer<>();
-//        serdeProps.put("JsonPOJOClass",List.class);
-//        containerListDeser.configure(serdeProps, false);
-//        
-//        final Serde<List<Container>> containerListSerDe = Serdes.serdeFrom(containerListSer, containerListDeser); 
-//  
-//        
-//        final Serializer<Map<String, Object>> conser = new JsonPOJOSerializer<>();
-//        serdeProps.put("JsonPOJOClass", LinkedTreeMap.class);
-//        conser.configure(serdeProps, false);
-//        
-//        final Deserializer<Map<String, Object>> conDeser = new JsonPOJODeserializer<>();
-//        serdeProps.put("JsonPOJOClass",LinkedTreeMap.class);
-//        conDeser.configure(serdeProps, false);
-//        
-//        final Serde<Map<String, Object>> conSerDe = Serdes.serdeFrom(conser, conDeser); 
-//  
-//        
-        
-//        KStream<String, Map<String, Object>> stream1= builder.<String, String>stream("dockerapm")
-//               .flatMapValues(value -> { 
-//            	   Map<String, String> map=gson.fromJson(value, mapType);
-//            	   String containersString=map.get("value");
-//            	   List<Map<String,Object>> containerList=gson.fromJson(containersString, listType);
-//            	   return containerList;}
-//                    )
-//                   .selectKey((k,value)->(String)value.get("imageId")+new Date().toString());
-//                
-//      KTable<String, Long> stream1=
-//		builder.<String, String>stream("container_to_image")
-//        .flatMapValues(value -> { 
-//     	   Map<String, Object> map=gson.fromJson(value, mapType);
-//     	  List<Map<String,Object>> containerList=(List<Map<String,Object>>)map.get("value");
-//     	  return containerList;}
-//             )
-//        .map((k,v)->{
-//            	return KeyValue.pair((String)v.get("imageId"),new Date().toString()); 
-//             })
-//        .groupByKey()
-//        .count(Materialized.<String, Long, KeyValueStore<Bytes, byte[]>>as("counts-store"));
-//stream1.toStream().to("count_by_imageid", Produced.with(Serdes.String(), Serdes.Long()));
-
-        
         KTable<String, Long> stream1=
         		builder.<String, String>stream("container_to_image")
                 .map((k,v)->{

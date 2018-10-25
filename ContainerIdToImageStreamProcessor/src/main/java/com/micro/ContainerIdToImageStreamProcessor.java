@@ -57,7 +57,7 @@ public class ContainerIdToImageStreamProcessor {
 	public static void main(String[] args) throws Exception {
     	SpringApplication.run(ContainerIdToImageStreamProcessor.class, args);    
     	Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "containerId_to_imageId_4");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "containerId_to_imageId");
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv("KAFKABROKERS"));
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
@@ -68,50 +68,6 @@ public class ContainerIdToImageStreamProcessor {
         Map<String, Object> serdeProps = new HashMap<>();
         
         
-        
-//        final Serializer<Container> containerSer = new JsonPOJOSerializer<>();
-//        serdeProps.put("JsonPOJOClass", Container.class);
-//        containerSer.configure(serdeProps, false);
-//        
-//        final Deserializer<Container> containerDeser = new JsonPOJODeserializer<>();
-//        serdeProps.put("JsonPOJOClass", Container.class);
-//        containerDeser.configure(serdeProps, false);
-//        
-//        final Serde<Container> containerSerDe = Serdes.serdeFrom(containerSer, containerDeser); 
-//        
-//        final Serializer<List<Container>> containerListSer = new JsonPOJOSerializer<>();
-//        serdeProps.put("JsonPOJOClass", List.class);
-//        containerListSer.configure(serdeProps, false);
-//        
-//        final Deserializer<List<Container>> containerListDeser = new JsonPOJODeserializer<>();
-//        serdeProps.put("JsonPOJOClass",List.class);
-//        containerListDeser.configure(serdeProps, false);
-//        
-//        final Serde<List<Container>> containerListSerDe = Serdes.serdeFrom(containerListSer, containerListDeser); 
-//  
-//        
-//        final Serializer<Map<String, Object>> conser = new JsonPOJOSerializer<>();
-//        serdeProps.put("JsonPOJOClass", LinkedTreeMap.class);
-//        conser.configure(serdeProps, false);
-//        
-//        final Deserializer<Map<String, Object>> conDeser = new JsonPOJODeserializer<>();
-//        serdeProps.put("JsonPOJOClass",LinkedTreeMap.class);
-//        conDeser.configure(serdeProps, false);
-//        
-//        final Serde<Map<String, Object>> conSerDe = Serdes.serdeFrom(conser, conDeser); 
-//  
-//        
-        
-//        KStream<String, Map<String, Object>> stream1= builder.<String, String>stream("dockerapm")
-//               .flatMapValues(value -> { 
-//            	   Map<String, String> map=gson.fromJson(value, mapType);
-//            	   String containersString=map.get("value");
-//            	   List<Map<String,Object>> containerList=gson.fromJson(containersString, listType);
-//            	   return containerList;}
-//                    )
-//                   .selectKey((k,value)->(String)value.get("imageId")+new Date().toString());
-//                
-        //KTable<String, Long> stream1=
         		builder.<String, String>stream("container_details")
                 .flatMapValues(value -> { 
              	   Map<String, Object> map=gson.fromJson(value, mapType);
