@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.micro.streamprocessors</groupId>
-    <artifactId>container_to_imageid</artifactId>
+    <artifactId>container-list-to-stream</artifactId>
     <version>0.0.1</version>
     <packaging>jar</packaging>
    <properties>
@@ -47,7 +47,6 @@
         </plugin> 
 		</plugins>
 	</build>
- 
  	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>

@@ -1,5 +1,5 @@
 
-package com.micro;
+package com.micro.streamprocessors;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -34,12 +34,12 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 @SpringBootApplication
-public class CountByImageStreamProcessor {
+public class ContainerToMount{
 
     public static void main(String[] args) throws Exception {
-        SpringApplication.run(CountByImageStreamProcessor.class, args); 
+        SpringApplication.run(ContainerToMount.class, args); 
     	Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "count_by_imageid");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "container-list-to-stream");
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv("KAFKABROKERS"));
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
@@ -48,16 +48,20 @@ public class CountByImageStreamProcessor {
         Type listType= new TypeToken<List<Map<String,Object>>>(){}.getType();
         final StreamsBuilder builder = new StreamsBuilder();
         Map<String, Object> serdeProps = new HashMap<>();
-        KTable<String, Long> stream1=
-        		builder.<String, String>stream("container_to_image")
-                .map((k,v)->{
-                    	return KeyValue.pair(v,new Date().toString()); 
-                     })
-                .groupByKey()
-                .count(Materialized.<String, Long, KeyValueStore<Bytes, byte[]>>as("counts-store"));
-        stream1.toStream().to("count_by_imageid", Produced.with(Serdes.String(), Serdes.Long()));
+		
+	    builder.<String, String>stream("container_list_to_stream")
+	    .flatMapValues(value -> { 
+	    	Map container = gson.fromJson(value, mapType);
+	     	  List<Map<String,Object>> mounts=(List<Map<String,Object>>)container.get("mounts");
+	     	  return mounts;}
+	             )
+	      .map((k,v)->{
+	           return KeyValue.pair(k+"_"+(String)v.get("name"),gson.toJson(v)); 
+	        })
+	      .to("container_to_mount", Produced.with(Serdes.String(), Serdes.String()));
 
-        final Topology topology = builder.build();
+	
+		final Topology topology = builder.build();
         final KafkaStreams streams = new KafkaStreams(topology, props);
         final CountDownLatch latch = new CountDownLatch(1);
 
