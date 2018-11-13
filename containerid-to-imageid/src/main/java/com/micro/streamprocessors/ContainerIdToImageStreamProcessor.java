@@ -71,7 +71,7 @@ public class ContainerIdToImageStreamProcessor {
 		builder.<String, String>stream("container_list_to_stream").map((k, v) -> {
 			Map container = gson.fromJson(v, mapType);
 			return KeyValue.pair(k, (String) container.get("imageId"));
-		}).to("container_to_imageid", Produced.with(Serdes.String(), Serdes.String()));
+		}).to("containerid_to_imageid", Produced.with(Serdes.String(), Serdes.String()));
 
 		final Topology topology = builder.build();
 		final KafkaStreams streams = new KafkaStreams(topology, props);

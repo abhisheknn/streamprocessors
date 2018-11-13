@@ -56,7 +56,7 @@ public class ContainerIdToImageStreamProcessor {
 	public static void main(String[] args) throws Exception {
 		SpringApplication.run(ContainerIdToImageStreamProcessor.class, args);
 		Properties props = new Properties();
-		props.put(StreamsConfig.APPLICATION_ID_CONFIG, "containerId_to_imageId");
+		props.put(StreamsConfig.APPLICATION_ID_CONFIG, "containerId_to_imageId_Test");
 		props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv("KAFKABROKERS"));
 		props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
 		props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
@@ -71,7 +71,7 @@ public class ContainerIdToImageStreamProcessor {
 		builder.<String, String>stream("container_list_to_stream").map((k, v) -> {
 			Map container = gson.fromJson(v, mapType);
 			return KeyValue.pair(k, (String) container.get("imageId"));
-		}).to("container_to_imageid", Produced.with(Serdes.String(), Serdes.String()));
+		}).to("containerid_to_imageid", Produced.with(Serdes.String(), Serdes.String()));
 
 		final Topology topology = builder.build();
 		final KafkaStreams streams = new KafkaStreams(topology, props);

@@ -39,7 +39,7 @@ public class ContainerToMount{
     public static void main(String[] args) throws Exception {
         SpringApplication.run(ContainerToMount.class, args); 
     	Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "container-list-to-stream");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "container_to_mount");
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv("KAFKABROKERS"));
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
@@ -56,7 +56,7 @@ public class ContainerToMount{
 	     	  return mounts;}
 	             )
 	      .map((k,v)->{
-	           return KeyValue.pair(k+"_"+(String)v.get("name"),gson.toJson(v)); 
+	           return KeyValue.pair(k,gson.toJson(v)); 
 	        })
 	      .to("container_to_mount", Produced.with(Serdes.String(), Serdes.String()));
 
