@@ -36,7 +36,9 @@ import java.util.concurrent.CountDownLatch;
 @SpringBootApplication
 public class ContainerToMount{
 
-    public static void main(String[] args) throws Exception {
+    private static final String CONTAINERID = "CONTAINERID";
+
+	public static void main(String[] args) throws Exception {
         SpringApplication.run(ContainerToMount.class, args); 
     	Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "container_to_mount");
@@ -56,6 +58,7 @@ public class ContainerToMount{
 	     	  return mounts;}
 	             )
 	      .map((k,v)->{
+	    	  	v.put(CONTAINERID, k);
 	           return KeyValue.pair(k,gson.toJson(v)); 
 	        })
 	      .to("container_to_mount", Produced.with(Serdes.String(), Serdes.String()));
