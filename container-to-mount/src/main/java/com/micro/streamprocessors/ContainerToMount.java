@@ -51,17 +51,31 @@ public class ContainerToMount{
         final StreamsBuilder builder = new StreamsBuilder();
         Map<String, Object> serdeProps = new HashMap<>();
 		
-	    builder.<String, String>stream("container_list_to_stream")
-	    .flatMapValues(value -> { 
-	    	Map container = gson.fromJson(value, mapType);
-	     	  List<Map<String,Object>> mounts=(List<Map<String,Object>>)container.get("mounts");
-	     	  return mounts;}
-	             )
-	      .map((k,v)->{
-	    	  	v.put(CONTAINERID, k);
-	           return KeyValue.pair(k,gson.toJson(v)); 
-	        })
-	      .to("container_to_mount", Produced.with(Serdes.String(), Serdes.String()));
+//	    builder.<String, String>stream("container_details")
+//	    .flatMap((k,v)->{
+//	    	Map container = gson.fromJson(v, mapType);
+//	    		return container;
+//	    	})
+//	    .filter((k,v)->{
+//	    	if(null==container.get("mounts")) return false;
+//	    	return true;})
+//	    .map((k, v) -> {
+//			Map container = gson.fromJson(v, mapType);
+//			return KeyValue.pair(k,(String)container.get("mounts"));    
+//		}).to("container_to_mount", Produced.with(Serdes.String(), Serdes.String()));
+//	      
+//	    
+        builder.<String,String>stream("container_details")
+	    .map((k,v)->{
+	    	Map container = gson.fromJson(v, mapType);
+	    		return KeyValue.pair(k,container);
+	    	}).
+	    filter((k,v)->{
+    	if(null==v.get("mounts")) return false;
+    	return true;})
+	    .map((k, v) -> {
+		return KeyValue.pair(k,gson.toJson(v.get("mounts")));    
+	    }).to("container_to_mount", Produced.with(Serdes.String(), Serdes.String()));
 
 	
 		final Topology topology = builder.build();

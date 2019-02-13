@@ -68,7 +68,7 @@ public class ContainerIdToImageStreamProcessor {
 		final StreamsBuilder builder = new StreamsBuilder();
 		Map<String, Object> serdeProps = new HashMap<>();
 
-		builder.<String, String>stream("container_list_to_stream").map((k, v) -> {
+		builder.<String, String>stream("container_details").map((k, v) -> {
 			Map container = gson.fromJson(v, mapType);
 			return KeyValue.pair(k, (String) container.get("image"));     // Need to test the impact of this .
 		}).to("containerid_to_imageid", Produced.with(Serdes.String(), Serdes.String()));

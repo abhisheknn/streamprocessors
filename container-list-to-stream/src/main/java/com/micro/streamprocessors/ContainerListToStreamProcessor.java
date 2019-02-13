@@ -52,7 +52,7 @@ public class ContainerListToStreamProcessor {
 		builder.<String, String>stream("container_details")
         .flatMapValues(value -> { 
      	   Map<String, Object> map=gson.fromJson(value, mapType);
-     	  List<Map<String,Object>> containerList=(List<Map<String,Object>>)map.get("value");
+     	  Map<String,Object> containerList=(Map<String,Object>)map.get("value");
      	  return containerList;}
              )
         .map((k,v)->{
