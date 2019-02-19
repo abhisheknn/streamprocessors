@@ -70,7 +70,7 @@ public class ContainerIdToImageStreamProcessor {
 
 		builder.<String, String>stream("container_details").map((k, v) -> {
 			Map container = gson.fromJson(v, mapType);
-			return KeyValue.pair(k, (String) container.get("image"));     // Need to test the impact of this .
+			return KeyValue.pair(k+"_"+container.get("id"), (String) container.get("image"));     // Need to test the impact of this .
 		}).to("containerid_to_imageid", Produced.with(Serdes.String(), Serdes.String()));
 
 		final Topology topology = builder.build();
