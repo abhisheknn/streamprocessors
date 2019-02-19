@@ -66,18 +66,11 @@ public class ContainerToMount{
 //	      
 //	    
         builder.<String,String>stream("container_details")
-	    .map((k,v)->{
-	    	Map container = gson.fromJson(v, mapType);
-	    		return KeyValue.pair(k,container);
-	    	}).
-	    filter((k,v)->{
-    	if(null==v.get("mounts")) return false;
-    	return true;})
-	    .map((k, v) -> {
-		return KeyValue.pair(k,gson.toJson(v.get("mounts")));    
-	    }).to("container_to_mount", Produced.with(Serdes.String(), Serdes.String()));
+	    .mapValues(v->(Map)gson.fromJson(v, mapType))
+	    .filter((k,v)-> null==v.get("mounts"))
+	    .map((k, v) -> KeyValue.pair(k+"_"+v.get("id"),gson.toJson(v.get("mounts"))))    
+	    .to("container_to_mount", Produced.with(Serdes.String(), Serdes.String()));
 
-	
 		final Topology topology = builder.build();
         final KafkaStreams streams = new KafkaStreams(topology, props);
         final CountDownLatch latch = new CountDownLatch(1);
