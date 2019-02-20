@@ -20,6 +20,8 @@ import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.util.SystemPropertyUtils;
+
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
@@ -48,19 +50,13 @@ public class ContainerListToStreamProcessor {
         Type listType= new TypeToken<List<Map<String,Object>>>(){}.getType();
         final StreamsBuilder builder = new StreamsBuilder();
         Map<String, Object> serdeProps = new HashMap<>();
-   //     KTable<String, Long> stream1=
-		builder.<String, String>stream("container_details")
-        .flatMapValues(value -> { 
-     	   Map<String, Object> map=gson.fromJson(value, mapType);
-     	  Map<String,Object> containerList=(Map<String,Object>)map.get("value");
-     	  return containerList;}
-             )
-        .map((k,v)->{
-        		
-        	return KeyValue.pair(k+"_"+(String)v.get("id"),gson.toJson(v)); 
-             })
-
-        .to("container_list_to_stream", Produced.with(Serdes.String(), Serdes.String()));
+        
+        builder.<String, String>stream("container_list")
+        .flatMapValues(value ->(List<Map<String,Object>>)gson.fromJson(value,listType))
+        .mapValues(v->gson.toJson(v))
+        .to("container_details", Produced.with(Serdes.String(), Serdes.String()));
+        
+        // .to("container_details",Produced.with(Serdes.String(), Serdes.String()));
 		final Topology topology = builder.build();
         final KafkaStreams streams = new KafkaStreams(topology, props);
         final CountDownLatch latch = new CountDownLatch(1);
