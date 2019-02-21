@@ -36,12 +36,12 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 @SpringBootApplication
-public class ContainerListToStreamProcessor {
+public class NetworkListToStreamProcessor {
 
     public static void main(String[] args) throws Exception {
-        SpringApplication.run(ContainerListToStreamProcessor.class, args); 
+        SpringApplication.run(NetworkListToStreamProcessor.class, args); 
     	Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "container-list-to-stream");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "network-list-to-stream");
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv("KAFKABROKERS"));
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
@@ -51,12 +51,11 @@ public class ContainerListToStreamProcessor {
         final StreamsBuilder builder = new StreamsBuilder();
         Map<String, Object> serdeProps = new HashMap<>();
         
-        builder.<String, String>stream("container_list")
+        builder.<String, String>stream("network_list")
         .flatMapValues(value ->(List<Map<String,Object>>)gson.fromJson(value,listType))
         .mapValues(v->gson.toJson(v))
-        .to("container_details", Produced.with(Serdes.String(), Serdes.String()));
+        .to("network_details", Produced.with(Serdes.String(), Serdes.String()));
         
-        // .to("container_details",Produced.with(Serdes.String(), Serdes.String()));
 		final Topology topology = builder.build();
         final KafkaStreams streams = new KafkaStreams(topology, props);
         final CountDownLatch latch = new CountDownLatch(1);
