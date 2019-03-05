@@ -1,6 +1,7 @@
 
 package com.micro.streamprocessors;
 
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -25,6 +26,8 @@ import org.springframework.util.SystemPropertyUtils;
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
+import com.micro.kafka.StreamProcessor;
+
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Date;
@@ -40,42 +43,24 @@ public class ContainerListToStreamProcessor {
 
     public static void main(String[] args) throws Exception {
         SpringApplication.run(ContainerListToStreamProcessor.class, args); 
-    	Properties props = new Properties();
+        Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "container-list-to-stream");
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv("KAFKABROKERS"));
-        props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        Gson gson= new Gson();
-        Type  mapType= new TypeToken<Map<String,Object>>(){}.getType();
-        Type listType= new TypeToken<List<Map<String,Object>>>(){}.getType();
-        final StreamsBuilder builder = new StreamsBuilder();
-        Map<String, Object> serdeProps = new HashMap<>();
-        
-        builder.<String, String>stream("container_list")
-        .flatMapValues(value ->(List<Map<String,Object>>)gson.fromJson(value,listType))
-        .mapValues(v->gson.toJson(v))
-        .to("container_details", Produced.with(Serdes.String(), Serdes.String()));
-        
-        // .to("container_details",Produced.with(Serdes.String(), Serdes.String()));
-		final Topology topology = builder.build();
-        final KafkaStreams streams = new KafkaStreams(topology, props);
-        final CountDownLatch latch = new CountDownLatch(1);
-
-        // attach shutdown handler to catch control-c
-        Runtime.getRuntime().addShutdownHook(new Thread("streams-shutdown-hook") {
-            @Override
-            public void run() {
-                streams.close();
-                latch.countDown();
-            }
-        });
-
-        try {
-            streams.start();
-            latch.await();
-        } catch (Throwable e) {
-            System.exit(1);
-        }
-        System.exit(0);
+        StreamProcessor
+        .build()
+        .withProperties(props)
+        .withProcessor(
+        ()->{
+    	   final StreamsBuilder builder = new StreamsBuilder();
+    	   Gson gson= new Gson();
+           Type  mapType= new TypeToken<Map<String,Object>>(){}.getType();
+           Type listType= new TypeToken<List<Map<String,Object>>>(){}.getType();
+            builder.<String, String>stream("container_list")
+           .flatMapValues(value ->(List<Map<String,Object>>)gson.fromJson(value,listType))
+           .mapValues(v->gson.toJson(v))
+           .to("container_details", Produced.with(Serdes.String(), Serdes.String()));
+           return builder;
+       })
+       .start();
+       System.exit(0);
     }
 }
