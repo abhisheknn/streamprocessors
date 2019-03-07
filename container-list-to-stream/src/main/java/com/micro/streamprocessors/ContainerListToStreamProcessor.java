@@ -26,6 +26,7 @@ import org.springframework.util.SystemPropertyUtils;
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
+import com.micro.kafka.KafkaProducer;
 import com.micro.kafka.StreamProcessor;
 
 import java.lang.reflect.Type;
@@ -36,31 +37,75 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 @SpringBootApplication
 public class ContainerListToStreamProcessor {
 
-    public static void main(String[] args) throws Exception {
-        SpringApplication.run(ContainerListToStreamProcessor.class, args); 
-        Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "container-list-to-stream");
-        StreamProcessor
-        .build()
-        .withProperties(props)
-        .withProcessor(
-        ()->{
-    	   final StreamsBuilder builder = new StreamsBuilder();
-    	   Gson gson= new Gson();
-           Type  mapType= new TypeToken<Map<String,Object>>(){}.getType();
-           Type listType= new TypeToken<List<Map<String,Object>>>(){}.getType();
-            builder.<String, String>stream("container_list")
-           .flatMapValues(value ->(List<Map<String,Object>>)gson.fromJson(value,listType))
-           .mapValues(v->gson.toJson(v))
-           .to("container_details", Produced.with(Serdes.String(), Serdes.String()));
-           return builder;
-       })
-       .start();
-       System.exit(0);
-    }
+	public static void main(String[] args) throws Exception {
+		SpringApplication.run(ContainerListToStreamProcessor.class, args);
+		
+		createTable();
+		
+		Properties props = new Properties();
+		props.put(StreamsConfig.APPLICATION_ID_CONFIG, "container-list-to-stream");
+		StreamProcessor.build().withProperties(props).withProcessor(() -> {
+			final StreamsBuilder builder = new StreamsBuilder();
+			Gson gson = new Gson();
+			Type mapType = new TypeToken<Map<String, Object>>() {
+			}.getType();
+			Type listType = new TypeToken<List<Map<String, Object>>>() {
+			}.getType();
+			builder.<String, String>stream("container_list")
+					.flatMapValues(value -> (List<Map<String, Object>>) gson.fromJson(value, listType))
+					.mapValues(v -> gson.toJson(v))
+					.to("container_details", Produced.with(Serdes.String(), Serdes.String()));
+			return builder;
+		}).start();
+
+		
+		
+	}
+
+	private static void createTable() {
+		Gson gson = new Gson();
+		Type mapType = new TypeToken<Map<String, Object>>() {
+		}.getType();
+		Type listType = new TypeToken<List<Map<String, Object>>>() {
+		}.getType();
+		String obj = "{\"command\":\"string\",\"created\":1540482286,\"id\":\"string\",\"image\":\"string\",\"imageId\":\"string\",\"names\":[\"string\"],\"ports\":[{\"ip\":\"string\",\"privatePort\":\"string\",\"publicPort\":\"string\",\"type\":\"string\"}],\"labels\":{\"key\":\"value\"},\"status\":\"Up Less than a second\",\"state\":\"running\",\"hostConfig\":{\"networkMode\":\"string\"},\"networkSettings\":{\"networks\":{\"bridge\":{\"networkID\":\"string\",\"endpointId\":\"string\",\"gateway\":\"string\",\"ipAddress\":\"string\",\"ipPrefixLen\":16,\"ipV6Gateway\":\"\",\"globalIPv6Address\":\"\",\"globalIPv6PrefixLen\":0,\"macAddress\":\"string\"}}},\"mounts\":[{\"source\":\"string\",\"destination\":\"string\",\"mode\":\"\",\"rw\":true,\"propagation\":\"\",\"name\":\"string\",\"driver\":\"local\"},{\"source\":\"string\",\"destination\":\"string\",\"mode\":\"\",\"rw\":true,\"propagation\":\"string\"},{\"source\":\"string\",\"destination\":\"string\",\"mode\":\"\",\"rw\":true,\"propagation\":\"string\"}]}";
+		Map<String, Object> container = gson.fromJson(obj, mapType);
+		Map<String, Object> columns = new HashMap<>();
+		Set<String> keys = container.keySet();
+		for (String key : keys) {
+			columns.put(key, "text");
+			if (key.equals("created")) {
+				columns.put(key, "bigint");
+			}
+			if (key.equals("names")) {
+				columns.put(key, "list<text>");
+			}
+			if (key.equals("ports")) {
+				columns.put(key, "list<frozen map<text,text>>");
+			}
+			if (key.equals("labels")) {
+				columns.put(key, "map<text,text>");
+			}
+			if (key.equals("hostConfig")) {
+				columns.put(key, "map<text,text>");
+			}
+			if (key.equals("networkSettings")) {
+				columns.put(key, "map<text,frozen map<text,frozen map<text,text>>>");
+			}
+			if (key.equals("mounts")) {
+				columns.put(key, "list<frozen map<text,text>>");
+			}
+		}
+
+		Properties producerConfig = new Properties();
+		producerConfig.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv("KAFKABROKERS"));
+
+		KafkaProducer.build().withConfig(producerConfig).produce("create-table", "container_details", columns);
+	}
 }
