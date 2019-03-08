@@ -25,6 +25,7 @@ import org.springframework.util.SystemPropertyUtils;
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
+import com.micro.cassandra.Cassandra;
 import com.micro.kafka.StreamProcessor;
 
 import java.lang.reflect.Type;
@@ -44,6 +45,7 @@ public class VolumeListToStreamProcessor {
         SpringApplication.run(VolumeListToStreamProcessor.class, args); 
     	Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "volume-list-to-stream");	
+        
         
         StreamProcessor.build().withProperties(props).withProcessor(()->{
            Gson gson= new Gson();
