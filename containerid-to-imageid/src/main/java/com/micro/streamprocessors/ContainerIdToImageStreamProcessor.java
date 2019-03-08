@@ -58,7 +58,10 @@ public class ContainerIdToImageStreamProcessor {
 		SpringApplication.run(ContainerIdToImageStreamProcessor.class, args);
 		Properties props = new Properties();
 		props.put(StreamsConfig.APPLICATION_ID_CONFIG, "containerId_to_imageId");
-		StreamProcessor.build().withProperties(props).withProcessor(()->{
+		StreamProcessor
+		.build()
+		.withProperties(props)
+		.withProcessor(()->{
 			Gson gson = new Gson();
 			Type mapType = new TypeToken<Map<String, Object>>() {
 			}.getType();
@@ -67,10 +70,10 @@ public class ContainerIdToImageStreamProcessor {
 			final StreamsBuilder builder = new StreamsBuilder();	
 			builder.<String, String>stream("container_details").map((k, v) -> {
 				Map container = gson.fromJson(v, mapType);
-				return KeyValue.pair(k+"_"+container.get("id"), (String) container.get("image"));     // Need to test the impact of this .
+				return KeyValue.pair(k+"_"+container.get("id"), (String) container.get("image"));     // Need to test the impact of this.
 			}).to("containerid_to_imageid", Produced.with(Serdes.String(), Serdes.String()));
-
 			return builder;
-		}).start();
+		})
+		.start();
 }
 }

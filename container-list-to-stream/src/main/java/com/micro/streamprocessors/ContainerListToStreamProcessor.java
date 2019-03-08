@@ -87,7 +87,7 @@ public class ContainerListToStreamProcessor {
 				columns.put(key, "list<text>");
 			}
 			if (key.equals("ports")) {
-				columns.put(key, "list<frozen map<text,text>>");
+				columns.put(key, "list<frozen<map<text,text>>>");
 			}
 			if (key.equals("labels")) {
 				columns.put(key, "map<text,text>");
@@ -96,16 +96,16 @@ public class ContainerListToStreamProcessor {
 				columns.put(key, "map<text,text>");
 			}
 			if (key.equals("networkSettings")) {
-				columns.put(key, "map<text,frozen map<text,frozen map<text,text>>>");
+				columns.put(key, "map<text,frozen<map<text,frozen<map<text,text>>>>>");
 			}
 			if (key.equals("mounts")) {
-				columns.put(key, "list<frozen map<text,text>>");
+				columns.put(key, "list<frozen<map<text,text>>>");
 			}
 		}
-
+		columns.put("macaddress" ,"text");
+		columns.put("PRIMARY KEY" ,"(macaddress, id)");
 		Properties producerConfig = new Properties();
 		producerConfig.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv("KAFKABROKERS"));
-
 		KafkaProducer.build().withConfig(producerConfig).produce("create-table", "container_details", columns);
 	}
 }
