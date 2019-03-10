@@ -26,6 +26,9 @@ import org.springframework.util.SystemPropertyUtils;
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
+import com.micro.cassandra.Cassandra;
+import com.micro.cassandra.Cassandra.CONFIGURATION_TYPE;
+import com.micro.cassandra.Cassandra.Configuration;
 import com.micro.kafka.KafkaProducer;
 import com.micro.kafka.StreamProcessor;
 
@@ -45,7 +48,6 @@ public class ContainerListToStreamProcessor {
 
 	public static void main(String[] args) throws Exception {
 		SpringApplication.run(ContainerListToStreamProcessor.class, args);
-		
 		createTable();
 		
 		Properties props = new Properties();
@@ -68,6 +70,21 @@ public class ContainerListToStreamProcessor {
 		
 	}
 
+	private static void createMountInfoType(Map<String, Object> tableConf) {
+		//String mountInfoType="CREATE TYPE dockerx.mount_info (source text,destination text,mode text,rw boolean,propagation text)";
+		Map<String, String> typeConfiguration= new HashMap<>();
+		typeConfiguration.put("source", "text");
+		typeConfiguration.put("destination", "text");
+		typeConfiguration.put("mode", "text");
+		typeConfiguration.put("rw", "boolean");
+		typeConfiguration.put("propagation", "text");
+		Cassandra.Configuration conf = new Configuration();
+		conf.setConf(typeConfiguration);
+		conf.setName("container_mount_info");
+		conf.setKeySpace("dockerx");
+		tableConf.put(CONFIGURATION_TYPE.TYPE.toString(), conf);
+	}
+
 	private static void createTable() {
 		Gson gson = new Gson();
 		Type mapType = new TypeToken<Map<String, Object>>() {
@@ -76,7 +93,7 @@ public class ContainerListToStreamProcessor {
 		}.getType();
 		String obj = "{\"command\":\"string\",\"created\":1540482286,\"id\":\"string\",\"image\":\"string\",\"imageId\":\"string\",\"names\":[\"string\"],\"ports\":[{\"ip\":\"string\",\"privatePort\":\"string\",\"publicPort\":\"string\",\"type\":\"string\"}],\"labels\":{\"key\":\"value\"},\"status\":\"Up Less than a second\",\"state\":\"running\",\"hostConfig\":{\"networkMode\":\"string\"},\"networkSettings\":{\"networks\":{\"bridge\":{\"networkID\":\"string\",\"endpointId\":\"string\",\"gateway\":\"string\",\"ipAddress\":\"string\",\"ipPrefixLen\":16,\"ipV6Gateway\":\"\",\"globalIPv6Address\":\"\",\"globalIPv6PrefixLen\":0,\"macAddress\":\"string\"}}},\"mounts\":[{\"source\":\"string\",\"destination\":\"string\",\"mode\":\"\",\"rw\":true,\"propagation\":\"\",\"name\":\"string\",\"driver\":\"local\"},{\"source\":\"string\",\"destination\":\"string\",\"mode\":\"\",\"rw\":true,\"propagation\":\"string\"},{\"source\":\"string\",\"destination\":\"string\",\"mode\":\"\",\"rw\":true,\"propagation\":\"string\"}]}";
 		Map<String, Object> container = gson.fromJson(obj, mapType);
-		Map<String, Object> columns = new HashMap<>();
+		Map<String, String> columns = new HashMap<>();
 		Set<String> keys = container.keySet();
 		for (String key : keys) {
 			columns.put(key, "text");
@@ -99,13 +116,21 @@ public class ContainerListToStreamProcessor {
 				columns.put(key, "map<text,frozen<map<text,frozen<map<text,text>>>>>");
 			}
 			if (key.equals("mounts")) {
-				columns.put(key, "list<frozen<map<text,text>>>");
+				columns.put(key, "list<frozen<container_mount_info>");
 			}
 		}
 		columns.put("macaddress" ,"text");
 		columns.put("PRIMARY KEY" ,"(macaddress, id)");
 		Properties producerConfig = new Properties();
 		producerConfig.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv("KAFKABROKERS"));
-		KafkaProducer.build().withConfig(producerConfig).produce("create-table", "container_details", columns);
+		
+		Cassandra.Configuration conf = new Configuration();
+		conf.setConf(columns);
+		conf.setName("container_details");
+		conf.setKeySpace("dockerx");
+		Map<String, Object> tableConf= new HashMap<>();
+		tableConf.put(Cassandra.CONFIGURATION_TYPE.TABLE.toString(),conf);
+		createMountInfoType(tableConf);
+		KafkaProducer.build().withConfig(producerConfig).produce("create-table", "container_details", tableConf);
 	}
 }
