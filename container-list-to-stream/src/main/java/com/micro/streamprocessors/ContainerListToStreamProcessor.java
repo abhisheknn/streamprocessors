@@ -52,7 +52,7 @@ public class ContainerListToStreamProcessor {
 		createTable();
 		
 		Properties props = new Properties();
-		props.put(StreamsConfig.APPLICATION_ID_CONFIG, "container-list-to-stream1");
+		props.put(StreamsConfig.APPLICATION_ID_CONFIG, "container-list-to-stream");
 		StreamProcessor.build().withProperties(props).withProcessor(() -> {
 			final StreamsBuilder builder = new StreamsBuilder();
 			Gson gson = new Gson();
