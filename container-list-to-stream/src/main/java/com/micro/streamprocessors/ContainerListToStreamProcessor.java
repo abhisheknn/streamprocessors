@@ -33,6 +33,7 @@ import com.micro.kafka.KafkaProducer;
 import com.micro.kafka.StreamProcessor;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -51,7 +52,7 @@ public class ContainerListToStreamProcessor {
 		createTable();
 		
 		Properties props = new Properties();
-		props.put(StreamsConfig.APPLICATION_ID_CONFIG, "container-list-to-stream");
+		props.put(StreamsConfig.APPLICATION_ID_CONFIG, "container-list-to-stream1");
 		StreamProcessor.build().withProperties(props).withProcessor(() -> {
 			final StreamsBuilder builder = new StreamsBuilder();
 			Gson gson = new Gson();
@@ -59,10 +60,13 @@ public class ContainerListToStreamProcessor {
 			}.getType();
 			Type listType = new TypeToken<List<Map<String, Object>>>() {
 			}.getType();
-			builder.<String, String>stream("container_list")
+			builder.<String, String>stream("dockerx.container_list")
 					.flatMapValues(value -> (List<Map<String, Object>>) gson.fromJson(value, listType))
-					.mapValues(v -> gson.toJson(v))
-					.to("container_details", Produced.with(Serdes.String(), Serdes.String()));
+					.map((k,v) -> {
+						v.put("macaddress", k);	
+						return new KeyValue<>(k, gson.toJson(v));
+						})
+					.to("dockerx.container_details", Produced.with(Serdes.String(), Serdes.String()));
 			return builder;
 		}).start();
 
@@ -71,18 +75,56 @@ public class ContainerListToStreamProcessor {
 	}
 
 	private static void createMountInfoType(Map<String, Object> tableConf) {
+		List<Cassandra.Configuration> typeConf= new ArrayList<>();
 		//String mountInfoType="CREATE TYPE dockerx.mount_info (source text,destination text,mode text,rw boolean,propagation text)";
 		Map<String, String> typeConfiguration= new HashMap<>();
 		typeConfiguration.put("source", "text");
+		typeConfiguration.put("name", "text");
 		typeConfiguration.put("destination", "text");
 		typeConfiguration.put("mode", "text");
 		typeConfiguration.put("rw", "boolean");
 		typeConfiguration.put("propagation", "text");
+		typeConfiguration.put("driver", "text");
 		Cassandra.Configuration conf = new Configuration();
 		conf.setConf(typeConfiguration);
 		conf.setName("container_mount_info");
 		conf.setKeySpace("dockerx");
-		tableConf.put(CONFIGURATION_TYPE.TYPE.toString(), conf);
+		typeConf.add(conf);
+		tableConf.put(CONFIGURATION_TYPE.TYPE.toString(), typeConf);
+	}
+	private static void createNetworkSettingType(Map<String, Object> tableConf) {
+		//String mountInfoType="CREATE TYPE dockerx.mount_info (source text,destination text,mode text,rw boolean,propagation text)";
+		Map<String, String> typeConfiguration= new HashMap<>();
+		typeConfiguration.put("networkID", "text");
+		typeConfiguration.put("endpointId", "text");
+		typeConfiguration.put("gateway", "text");
+		typeConfiguration.put("ipAddress", "text");
+		typeConfiguration.put("ipPrefixLen", "double");
+		typeConfiguration.put("ipV6Gateway", "text");
+		typeConfiguration.put("globalIPv6Address", "text");
+		typeConfiguration.put("globalIPv6PrefixLen", "double");
+		typeConfiguration.put("macAddress", "text");
+		
+		Cassandra.Configuration conf = new Configuration();
+		conf.setConf(typeConfiguration);
+		conf.setName("container_networksetting");
+		conf.setKeySpace("dockerx");
+		List<Cassandra.Configuration> typeConf=(List<Configuration>) tableConf.get(CONFIGURATION_TYPE.TYPE.toString());
+		typeConf.add(conf);
+	}
+	private static void createPortType(Map<String, Object> tableConf) {
+		//{"ip":"0.0.0.0","privatePort":9092.0,"publicPort":32783.0,"type":"tcp"}
+		Map<String, String> typeConfiguration= new HashMap<>();
+		typeConfiguration.put("ip", "text");
+		typeConfiguration.put("privatePort", "double");
+		typeConfiguration.put("publicPort", "double");
+		typeConfiguration.put("type", "text");
+		Cassandra.Configuration conf = new Configuration();
+		conf.setConf(typeConfiguration);
+		conf.setName("container_ports");
+		conf.setKeySpace("dockerx");
+		List<Cassandra.Configuration> typeConf=(List<Configuration>) tableConf.get(CONFIGURATION_TYPE.TYPE.toString());
+		typeConf.add(conf);
 	}
 
 	private static void createTable() {
@@ -98,13 +140,13 @@ public class ContainerListToStreamProcessor {
 		for (String key : keys) {
 			columns.put(key, "text");
 			if (key.equals("created")) {
-				columns.put(key, "bigint");
+				columns.put(key, "double");
 			}
 			if (key.equals("names")) {
 				columns.put(key, "list<text>");
 			}
 			if (key.equals("ports")) {
-				columns.put(key, "list<frozen<map<text,text>>>");
+				columns.put(key, "list<frozen<container_ports>>");
 			}
 			if (key.equals("labels")) {
 				columns.put(key, "map<text,text>");
@@ -113,10 +155,10 @@ public class ContainerListToStreamProcessor {
 				columns.put(key, "map<text,text>");
 			}
 			if (key.equals("networkSettings")) {
-				columns.put(key, "map<text,frozen<map<text,frozen<map<text,text>>>>>");
+				columns.put(key, "map<text,frozen<map<text,frozen<container_networksetting>>>>");
 			}
 			if (key.equals("mounts")) {
-				columns.put(key, "list<frozen<container_mount_info>");
+				columns.put(key, "list<frozen<container_mount_info>>");
 			}
 		}
 		columns.put("macaddress" ,"text");
@@ -131,6 +173,8 @@ public class ContainerListToStreamProcessor {
 		Map<String, Object> tableConf= new HashMap<>();
 		tableConf.put(Cassandra.CONFIGURATION_TYPE.TABLE.toString(),conf);
 		createMountInfoType(tableConf);
+		createNetworkSettingType(tableConf);
+		createPortType(tableConf);
 		KafkaProducer.build().withConfig(producerConfig).produce("create-table", "container_details", tableConf);
 	}
 }
